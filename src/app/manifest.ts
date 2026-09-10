@@ -8,7 +8,7 @@ export default function manifest(): MetadataRoute.Manifest {
       "Internet radio that looks and feels like a 1970s stereo receiver.",
     start_url: "/",
     display: "standalone",
-    orientation: "portrait",
+    orientation: "any",
     background_color: "#0c0b09",
     theme_color: "#1a1612",
     icons: [

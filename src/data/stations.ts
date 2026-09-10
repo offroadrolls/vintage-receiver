@@ -11,9 +11,8 @@ export type Station = {
 };
 
 /**
- * Editable internet-radio station list for Vintage Receiver.
- * Prefer HTTPS MP3/AAC direct stream URLs that work in Safari/iOS.
- * SomaFM ice hosts are used as a reliable starting set; swap freely.
+ * HTTPS MP3 streams chosen for Chrome/Safari HTMLAudioElement compatibility.
+ * Edit freely — prefer direct .mp3 endpoints over PLS/M3U playlists.
  */
 export const stations: Station[] = [
   {
@@ -22,9 +21,8 @@ export const stations: Station[] = [
     genre: "Classic Rock",
     frequency: "88.1",
     dialPosition: 0.05,
-    streamUrl: "https://ice5.somafm.com/seventies-128-aac",
+    streamUrl: "https://ice2.somafm.com/seventies-128-mp3",
     city: "San Francisco",
-    description: "Left Coast seventies rock",
   },
   {
     id: "midnight-horn",
@@ -32,9 +30,8 @@ export const stations: Station[] = [
     genre: "Jazz",
     frequency: "90.3",
     dialPosition: 0.16,
-    streamUrl: "https://ice5.somafm.com/sonicuniverse-128-aac",
+    streamUrl: "https://ice2.somafm.com/sonicuniverse-128-mp3",
     city: "San Francisco",
-    description: "Exploratory jazz & beyond",
   },
   {
     id: "riverfront-blues",
@@ -42,9 +39,8 @@ export const stations: Station[] = [
     genre: "Blues",
     frequency: "91.7",
     dialPosition: 0.26,
-    streamUrl: "https://ice5.somafm.com/7soul-128-aac",
+    streamUrl: "https://ice2.somafm.com/7soul-128-mp3",
     city: "Chicago",
-    description: "Soul & blues-leaning classics",
   },
   {
     id: "dust-road-radio",
@@ -52,9 +48,8 @@ export const stations: Station[] = [
     genre: "Country",
     frequency: "93.5",
     dialPosition: 0.36,
-    streamUrl: "https://ice5.somafm.com/bootliquor-128-aac",
+    streamUrl: "https://ice2.somafm.com/bootliquor-128-mp3",
     city: "Austin",
-    description: "Americana & outlaw country",
   },
   {
     id: "concert-hall",
@@ -62,9 +57,9 @@ export const stations: Station[] = [
     genre: "Classical",
     frequency: "95.1",
     dialPosition: 0.46,
-    streamUrl: "https://classicalking.streamguys1.com/king-fm-mp3",
-    city: "Seattle",
-    description: "Classical King FM",
+    streamUrl: "https://ice2.somafm.com/dronezone-128-mp3",
+    city: "Portland",
+    description: "Ambient / instrumental stand-in",
   },
   {
     id: "golden-needle",
@@ -72,9 +67,8 @@ export const stations: Station[] = [
     genre: "Oldies",
     frequency: "97.3",
     dialPosition: 0.56,
-    streamUrl: "https://ice5.somafm.com/u80s-128-aac",
+    streamUrl: "https://ice2.somafm.com/u80s-128-mp3",
     city: "Los Angeles",
-    description: "Underground eighties favorites",
   },
   {
     id: "soft-horizon",
@@ -82,9 +76,8 @@ export const stations: Station[] = [
     genre: "Ambient",
     frequency: "99.9",
     dialPosition: 0.68,
-    streamUrl: "https://ice5.somafm.com/dronezone-128-aac",
-    city: "Portland",
-    description: "Atmospheric drone & ambient",
+    streamUrl: "https://ice2.somafm.com/deepspaceone-128-mp3",
+    city: "San Francisco",
   },
   {
     id: "grove-salad",
@@ -92,9 +85,8 @@ export const stations: Station[] = [
     genre: "Ambient",
     frequency: "101.5",
     dialPosition: 0.78,
-    streamUrl: "https://ice5.somafm.com/groovesalad-128-aac",
+    streamUrl: "https://ice2.somafm.com/groovesalad-128-mp3",
     city: "San Francisco",
-    description: "Downtempo chill beats",
   },
   {
     id: "secret-signal",
@@ -102,9 +94,8 @@ export const stations: Station[] = [
     genre: "Jazz",
     frequency: "103.7",
     dialPosition: 0.88,
-    streamUrl: "https://ice5.somafm.com/secretagent-128-aac",
+    streamUrl: "https://ice2.somafm.com/secretagent-128-mp3",
     city: "New York",
-    description: "Spy-jazz & lounge",
   },
   {
     id: "wire-service",
@@ -114,7 +105,6 @@ export const stations: Station[] = [
     dialPosition: 0.97,
     streamUrl: "https://npr-ice.streamguys1.com/live.mp3",
     city: "Washington, D.C.",
-    description: "Public news stream",
   },
 ];
 

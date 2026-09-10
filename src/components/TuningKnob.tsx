@@ -23,7 +23,7 @@ export default function TuningKnob({
   });
 
   return (
-    <div className="knob-wrap">
+    <div className="knob-wrap knob-wrap--tuning">
       <button
         type="button"
         className={`knob knob--tuning ${powered ? "lit" : "dim"}`}
@@ -32,7 +32,7 @@ export default function TuningKnob({
         aria-label="Tuning knob"
         disabled={!powered}
       >
-        <span className="knob__ring" />
+        <span className="knob__knurl" />
         <span className="knob__core" />
         <span className="knob__indicator" />
       </button>

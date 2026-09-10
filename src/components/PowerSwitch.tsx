@@ -14,10 +14,7 @@ export default function PowerSwitch({ powered, onToggle }: PowerSwitchProps) {
       aria-pressed={powered}
       aria-label={powered ? "Power off" : "Power on"}
     >
-      <span className="power-switch__rocker">
-        <span className="power-switch__face power-switch__face--on">ON</span>
-        <span className="power-switch__face power-switch__face--off">OFF</span>
-      </span>
+      <span className="power-switch__toggle" />
       <span className="power-switch__label">POWER</span>
     </button>
   );

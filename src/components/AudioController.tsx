@@ -1,19 +1,9 @@
 "use client";
 
-import type { RefObject } from "react";
-
-type AudioControllerProps = {
-  audioRef: RefObject<HTMLAudioElement | null>;
-};
-
-/** Hidden audio element owned by the receiver. */
-export default function AudioController({ audioRef }: AudioControllerProps) {
-  return (
-    <audio
-      ref={audioRef}
-      preload="none"
-      playsInline
-      aria-hidden
-    />
-  );
+/**
+ * Visual placeholder only — real playback uses Audio() inside useAudioController.
+ * Kept so the receiver layout still has a DOM audio node for debugging if needed.
+ */
+export default function AudioController() {
+  return null;
 }

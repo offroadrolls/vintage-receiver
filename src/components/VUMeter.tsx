@@ -6,55 +6,72 @@ type VUMeterProps = {
   powered: boolean;
 };
 
-/** Analog-style VU meter with a swinging needle. Level is 0–1. */
+/** Cream-faced amber-lit analog VU meter matching classic hi-fi look. */
 export default function VUMeter({ label, level, powered }: VUMeterProps) {
-  const angle = powered ? -48 + level * 96 : -48;
+  const angle = powered ? -42 + level * 84 : -42;
 
   return (
     <div className={`vu-meter ${powered ? "lit" : "dim"}`}>
-      <div className="vu-meter__glass">
-        <svg className="vu-meter__scale" viewBox="0 0 120 70" aria-hidden>
-          <path
-            d="M12 58 A48 48 0 0 1 108 58"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.2"
-            opacity="0.55"
+      <div className="vu-meter__bezel">
+        <div className="vu-meter__glass">
+          <svg className="vu-meter__scale" viewBox="0 0 140 78" aria-hidden>
+            <defs>
+              <linearGradient id={`vuFace-${label.replace(/\s+/g, "")}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#f6ecd0" />
+                <stop offset="100%" stopColor="#e8d4a4" />
+              </linearGradient>
+            </defs>
+            <rect
+              x="4"
+              y="4"
+              width="132"
+              height="70"
+              rx="3"
+              fill={`url(#vuFace-${label.replace(/\s+/g, "")})`}
+            />
+            <path
+              d="M18 62 A52 52 0 0 1 122 62"
+              fill="none"
+              stroke="#2a261f"
+              strokeWidth="1.4"
+              opacity="0.75"
+            />
+            {[0, 0.2, 0.4, 0.6, 0.8, 1].map((t) => {
+              const a = (-42 + t * 84) * (Math.PI / 180);
+              const x1 = 70 + Math.sin(a) * 40;
+              const y1 = 62 - Math.cos(a) * 40;
+              const x2 = 70 + Math.sin(a) * 48;
+              const y2 = 62 - Math.cos(a) * 48;
+              const red = t >= 0.75;
+              return (
+                <line
+                  key={t}
+                  x1={x1}
+                  y1={y1}
+                  x2={x2}
+                  y2={y2}
+                  stroke={red ? "#b42318" : "#2a261f"}
+                  strokeWidth={t % 0.4 === 0 ? 1.6 : 1}
+                  opacity={0.85}
+                />
+              );
+            })}
+            <text x="22" y="72" fontSize="8" fill="#2a261f" opacity="0.7">
+              −20
+            </text>
+            <text x="62" y="20" fontSize="9" fill="#2a261f" fontWeight="600">
+              VU
+            </text>
+            <text x="108" y="72" fontSize="8" fill="#b42318" opacity="0.9">
+              +3
+            </text>
+          </svg>
+          <div
+            className="vu-meter__needle"
+            style={{ transform: `translateX(-50%) rotate(${angle}deg)` }}
           />
-          {[0, 0.25, 0.5, 0.75, 1].map((t) => {
-            const a = (-48 + t * 96) * (Math.PI / 180);
-            const x1 = 60 + Math.sin(a) * 38;
-            const y1 = 58 - Math.cos(a) * 38;
-            const x2 = 60 + Math.sin(a) * 46;
-            const y2 = 58 - Math.cos(a) * 46;
-            return (
-              <line
-                key={t}
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                stroke="currentColor"
-                strokeWidth={t >= 0.75 ? 1.6 : 1}
-                opacity={t >= 0.75 ? 0.9 : 0.5}
-              />
-            );
-          })}
-          <text x="18" y="64" fontSize="7" fill="currentColor" opacity="0.7">
-            −
-          </text>
-          <text x="56" y="22" fontSize="7" fill="currentColor" opacity="0.75">
-            VU
-          </text>
-          <text x="96" y="64" fontSize="7" fill="#b44" opacity="0.85">
-            +
-          </text>
-        </svg>
-        <div
-          className="vu-meter__needle"
-          style={{ transform: `translateX(-50%) rotate(${angle}deg)` }}
-        />
-        <div className="vu-meter__pivot" />
+          <div className="vu-meter__pivot" />
+        </div>
       </div>
       <div className="vu-meter__label">{label}</div>
     </div>
