@@ -9,7 +9,6 @@ export type AudioControllerState = {
   error: string | null;
   volume: number;
   levels: [number, number];
-  /** Kept for layout compatibility; playback uses an internal Audio element. */
   audioRef: React.RefObject<HTMLAudioElement | null>;
   playStation: (station: Station) => Promise<void>;
   stop: () => void;
@@ -17,47 +16,37 @@ export type AudioControllerState = {
   clearError: () => void;
 };
 
-function waitForCanPlay(audio: HTMLAudioElement, timeoutMs = 8000): Promise<void> {
-  if (audio.readyState >= 2) return Promise.resolve();
+function streamCandidates(station: Station): string[] {
+  return [
+    // Same-origin proxy — fixes Chrome NotSupportedError on many Icecast URLs
+    `/api/stream/${station.id}`,
+    // Direct fallback
+    station.streamUrl,
+  ];
+}
 
-  return new Promise((resolve, reject) => {
-    const timer = window.setTimeout(() => {
-      cleanup();
-      // Live streams sometimes never hit canplay — try play anyway
-      resolve();
-    }, timeoutMs);
-
-    const onReady = () => {
-      cleanup();
-      resolve();
-    };
-    const onError = () => {
-      cleanup();
-      reject(new Error("Stream failed to load"));
-    };
-    const cleanup = () => {
-      window.clearTimeout(timer);
-      audio.removeEventListener("canplay", onReady);
-      audio.removeEventListener("loadeddata", onReady);
-      audio.removeEventListener("error", onError);
-    };
-
-    audio.addEventListener("canplay", onReady, { once: true });
-    audio.addEventListener("loadeddata", onReady, { once: true });
-    audio.addEventListener("error", onError, { once: true });
-  });
+async function tryPlay(
+  audio: HTMLAudioElement,
+  url: string,
+  volume: number
+): Promise<void> {
+  audio.muted = false;
+  audio.volume = volume;
+  if (!audio.paused) {
+    audio.pause();
+  }
+  audio.src = url;
+  await audio.play();
 }
 
 /**
- * Uses a real Audio() instance (not only a React <audio> ref) so the first
- * Power press always has a playable element inside the user-gesture call stack.
+ * HTMLAudioElement playback with same-origin stream proxy first.
  */
 export function useAudioController(
   initialVolume = 0.85
 ): AudioControllerState {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const playerRef = useRef<HTMLAudioElement | null>(null);
-  const rafRef = useRef<number | null>(null);
   const fakeLevelRef = useRef(0);
   const volumeRef = useRef(initialVolume);
   const playTokenRef = useRef(0);
@@ -71,13 +60,10 @@ export function useAudioController(
   useEffect(() => {
     const audio = new Audio();
     audio.preload = "none";
-    audio.loop = false;
     audio.muted = false;
     audio.volume = volumeRef.current;
-    // iOS
     audio.setAttribute("playsinline", "true");
     audio.setAttribute("webkit-playsinline", "true");
-
     playerRef.current = audio;
     audioRef.current = audio;
 
@@ -88,25 +74,20 @@ export function useAudioController(
     };
     const onWaiting = () => setIsBuffering(true);
     const onPause = () => setIsPlaying(false);
-    const onError = () => {
-      setIsPlaying(false);
-      setIsBuffering(false);
-      setError("Stream unavailable — try another station");
-    };
+    const onStalled = () => setIsBuffering(true);
 
     audio.addEventListener("playing", onPlaying);
     audio.addEventListener("waiting", onWaiting);
     audio.addEventListener("pause", onPause);
-    audio.addEventListener("error", onError);
+    audio.addEventListener("stalled", onStalled);
 
     return () => {
       audio.removeEventListener("playing", onPlaying);
       audio.removeEventListener("waiting", onWaiting);
       audio.removeEventListener("pause", onPause);
-      audio.removeEventListener("error", onError);
+      audio.removeEventListener("stalled", onStalled);
       audio.pause();
       audio.removeAttribute("src");
-      audio.load();
       playerRef.current = null;
     };
   }, []);
@@ -122,7 +103,6 @@ export function useAudioController(
       const playing = Boolean(audio && !audio.paused && !audio.ended);
       let left = 0;
       let right = 0;
-
       if (playing) {
         const vol = Math.max(0.2, volumeRef.current);
         const target = (0.3 + Math.random() * 0.5) * vol;
@@ -141,12 +121,10 @@ export function useAudioController(
         left = fakeLevelRef.current < 0.02 ? 0 : fakeLevelRef.current;
         right = left * 0.92;
       }
-
       setLevels([left, right]);
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
-    rafRef.current = frame;
     return () => cancelAnimationFrame(frame);
   }, []);
 
@@ -187,48 +165,31 @@ export function useAudioController(
     setError(null);
     setIsBuffering(true);
 
-    try {
-      audio.muted = false;
-      audio.volume = Math.max(0.05, volumeRef.current);
-      audio.src = station.streamUrl;
+    const vol = Math.max(0.05, volumeRef.current);
+    const candidates = streamCandidates(station);
+    let lastError: unknown = null;
 
-      // IMPORTANT: call play() inside the user-gesture turn.
-      // Waiting for canplay first loses the gesture and Chrome blocks audio.
-      const playAttempt = audio.play();
-
-      // Don't hang forever on slow streams
-      await Promise.race([
-        playAttempt,
-        new Promise<void>((_, reject) =>
-          window.setTimeout(() => reject(new Error("Play timed out")), 12000)
-        ),
-      ]);
-
+    for (const url of candidates) {
       if (token !== playTokenRef.current) return;
-
-      setIsPlaying(true);
-      setIsBuffering(false);
-      setError(null);
-    } catch (err) {
-      if (token !== playTokenRef.current) return;
-
-      // Retry once after a short buffer if the first play raced the network
       try {
-        await waitForCanPlay(audio, 5000);
-        if (token !== playTokenRef.current) return;
-        await audio.play();
+        // play() must stay near the user gesture; try each candidate quickly
+        await tryPlay(audio, url, vol);
         if (token !== playTokenRef.current) return;
         setIsPlaying(true);
         setIsBuffering(false);
         setError(null);
         return;
-      } catch (err2) {
-        console.warn("Playback failed:", station.name, station.streamUrl, err, err2);
-        setIsPlaying(false);
-        setIsBuffering(false);
-        setError("Stream unavailable — try another station");
+      } catch (err) {
+        lastError = err;
+        console.warn("Candidate failed", station.name, url, err);
       }
     }
+
+    if (token !== playTokenRef.current) return;
+    console.warn("All stream candidates failed", station.name, lastError);
+    setIsPlaying(false);
+    setIsBuffering(false);
+    setError("Stream unavailable — try another station");
   }, []);
 
   return {
