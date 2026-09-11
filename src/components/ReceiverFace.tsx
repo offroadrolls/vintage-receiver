@@ -24,7 +24,7 @@ export default function ReceiverFace() {
   );
   const tuneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const audio = useAudioController(0.7);
+  const audio = useAudioController(1);
   const playStation = audio.playStation;
   const stopAudio = audio.stop;
   const setVolume = audio.setVolume;

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Station } from "@/data/stations";
+import { getSharedAudio, setSharedVolume } from "@/lib/sharedAudio";
 
 export type AudioControllerState = {
   isPlaying: boolean;
@@ -18,38 +19,19 @@ export type AudioControllerState = {
 
 function streamCandidates(station: Station): string[] {
   return [
-    // Same-origin proxy — fixes Chrome NotSupportedError on many Icecast URLs
     `/api/stream/${station.id}`,
-    // Direct fallback
     station.streamUrl,
+    "/audio/test-clip.mp3",
   ];
 }
 
-async function tryPlay(
-  audio: HTMLAudioElement,
-  url: string,
-  volume: number
-): Promise<void> {
-  audio.muted = false;
-  audio.volume = volume;
-  if (!audio.paused) {
-    audio.pause();
-  }
-  audio.src = url;
-  await audio.play();
-}
-
-/**
- * HTMLAudioElement playback with same-origin stream proxy first.
- */
 export function useAudioController(
   initialVolume = 0.85
 ): AudioControllerState {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const playerRef = useRef<HTMLAudioElement | null>(null);
-  const fakeLevelRef = useRef(0);
   const volumeRef = useRef(initialVolume);
   const playTokenRef = useRef(0);
+  const fakeLevelRef = useRef(0);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
@@ -58,14 +40,9 @@ export function useAudioController(
   const [levels, setLevels] = useState<[number, number]>([0, 0]);
 
   useEffect(() => {
-    const audio = new Audio();
-    audio.preload = "none";
-    audio.muted = false;
-    audio.volume = volumeRef.current;
-    audio.setAttribute("playsinline", "true");
-    audio.setAttribute("webkit-playsinline", "true");
-    playerRef.current = audio;
+    const audio = getSharedAudio();
     audioRef.current = audio;
+    setSharedVolume(volumeRef.current);
 
     const onPlaying = () => {
       setIsPlaying(true);
@@ -74,21 +51,22 @@ export function useAudioController(
     };
     const onWaiting = () => setIsBuffering(true);
     const onPause = () => setIsPlaying(false);
-    const onStalled = () => setIsBuffering(true);
+    const onEnded = () => {
+      setIsPlaying(false);
+      setIsBuffering(false);
+    };
 
     audio.addEventListener("playing", onPlaying);
     audio.addEventListener("waiting", onWaiting);
     audio.addEventListener("pause", onPause);
-    audio.addEventListener("stalled", onStalled);
+    audio.addEventListener("ended", onEnded);
 
     return () => {
       audio.removeEventListener("playing", onPlaying);
       audio.removeEventListener("waiting", onWaiting);
       audio.removeEventListener("pause", onPause);
-      audio.removeEventListener("stalled", onStalled);
-      audio.pause();
-      audio.removeAttribute("src");
-      playerRef.current = null;
+      audio.removeEventListener("ended", onEnded);
+      // Do NOT destroy shared audio on unmount — keeps volume control working
     };
   }, []);
 
@@ -99,20 +77,20 @@ export function useAudioController(
   useEffect(() => {
     let frame = 0;
     const tick = () => {
-      const audio = playerRef.current;
+      const audio = audioRef.current ?? (typeof window !== "undefined" ? getSharedAudio() : null);
       const playing = Boolean(audio && !audio.paused && !audio.ended);
       let left = 0;
       let right = 0;
       if (playing) {
-        const vol = Math.max(0.2, volumeRef.current);
+        const vol = Math.max(0.15, volumeRef.current);
         const target = (0.3 + Math.random() * 0.5) * vol;
         fakeLevelRef.current += (target - fakeLevelRef.current) * 0.14;
         const wobble = Math.sin(Date.now() / 160) * 0.06;
-        left = Math.min(1, Math.max(0.1, fakeLevelRef.current + wobble));
+        left = Math.min(1, Math.max(0.08, fakeLevelRef.current + wobble));
         right = Math.min(
           1,
           Math.max(
-            0.1,
+            0.08,
             fakeLevelRef.current - wobble + (Math.random() - 0.5) * 0.1
           )
         );
@@ -129,55 +107,55 @@ export function useAudioController(
   }, []);
 
   const setVolume = useCallback((next: number) => {
-    const clamped = Math.min(1, Math.max(0, next));
-    setVolumeState(clamped);
+    const clamped = setSharedVolume(next);
     volumeRef.current = clamped;
-    if (playerRef.current) {
-      playerRef.current.volume = clamped;
-      playerRef.current.muted = false;
-    }
+    setVolumeState(clamped);
   }, []);
 
   const stop = useCallback(() => {
     playTokenRef.current += 1;
-    const audio = playerRef.current;
-    if (audio) {
-      audio.pause();
-      audio.removeAttribute("src");
-      try {
-        audio.load();
-      } catch {
-        /* ignore */
-      }
+    const audio = getSharedAudio();
+    audio.pause();
+    audio.removeAttribute("src");
+    try {
+      audio.load();
+    } catch {
+      /* ignore */
     }
     setIsPlaying(false);
     setIsBuffering(false);
   }, []);
 
   const playStation = useCallback(async (station: Station) => {
-    const audio = playerRef.current;
-    if (!audio) {
-      setError("Audio not ready — tap Power again");
-      return;
-    }
+    const audio = getSharedAudio();
+    audioRef.current = audio;
 
     const token = ++playTokenRef.current;
     setError(null);
     setIsBuffering(true);
 
-    const vol = Math.max(0.05, volumeRef.current);
+    const vol = setSharedVolume(Math.max(0.05, volumeRef.current));
+    volumeRef.current = vol;
+    setVolumeState(vol);
+
     const candidates = streamCandidates(station);
     let lastError: unknown = null;
 
     for (const url of candidates) {
       if (token !== playTokenRef.current) return;
       try {
-        // play() must stay near the user gesture; try each candidate quickly
-        await tryPlay(audio, url, vol);
+        audio.src = url;
+        await audio.play();
         if (token !== playTokenRef.current) return;
+
+        const usedFallbackClip = url.endsWith("test-clip.mp3");
         setIsPlaying(true);
         setIsBuffering(false);
-        setError(null);
+        setError(
+          usedFallbackClip
+            ? "Radio stream blocked — playing local test clip"
+            : null
+        );
         return;
       } catch (err) {
         lastError = err;

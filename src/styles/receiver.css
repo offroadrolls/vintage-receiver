@@ -282,6 +282,130 @@ button:disabled {
   font-weight: 600;
 }
 
+/* Volume: knob + vertical fader + step buttons (phone-friendly) */
+
+.volume-control {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.volume-control__main {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.volume-control.dim {
+  opacity: 0.85;
+}
+
+.volume-fader {
+  display: flex;
+  gap: 4px;
+  align-items: stretch;
+  padding: 2px 0;
+}
+
+.volume-fader__track {
+  position: relative;
+  width: 28px;
+  min-height: 96px;
+  height: 100%;
+  border-radius: 4px;
+  border: 1px solid #5a5448;
+  background: linear-gradient(180deg, #2a261f, #12100c);
+  box-shadow:
+    inset 0 0 8px rgba(0, 0, 0, 0.7),
+    0 1px 0 rgba(255, 255, 255, 0.25);
+  touch-action: none;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.volume-control.lit .volume-fader__track {
+  box-shadow:
+    inset 0 0 10px rgba(255, 140, 40, 0.12),
+    0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.volume-fader__fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, #ffb84a, #a85a18);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.volume-fader__thumb {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  height: 18px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #efe9dc, #9a9488);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+}
+
+.volume-fader__scale {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  color: #6a655c;
+  padding: 2px 0;
+}
+
+.volume-control__buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.volume-step {
+  width: 40px;
+  height: 36px;
+  border-radius: 4px;
+  border: 1px solid #5a5448;
+  background: linear-gradient(180deg, #ddd7cb, #9a9488);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 2px 4px rgba(0, 0, 0, 0.25);
+  font-size: 20px;
+  line-height: 1;
+  color: #2a261f;
+  touch-action: manipulation;
+}
+
+.volume-step:disabled {
+  opacity: 0.45;
+}
+
+.volume-step:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.volume-control__readout {
+  min-width: 28px;
+  text-align: center;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: #4a453c;
+}
+
+.volume-control.lit .volume-control__readout {
+  color: #7a5a28;
+}
+
 .knob {
   border-radius: 50%;
   position: relative;
@@ -297,8 +421,9 @@ button:disabled {
 }
 
 .knob--volume {
-  width: clamp(96px, 26vw, 132px);
-  height: clamp(96px, 26vw, 132px);
+  width: clamp(78px, 20vw, 110px);
+  height: clamp(78px, 20vw, 110px);
+  flex-shrink: 0;
 }
 
 .knob--tuning {
@@ -713,8 +838,13 @@ button:disabled {
   }
 
   .knob--volume {
-    width: 140px;
-    height: 140px;
+    width: 110px;
+    height: 110px;
+  }
+
+  .volume-fader__track {
+    width: 32px;
+    min-height: 110px;
   }
 }
 
@@ -724,8 +854,18 @@ button:disabled {
   }
 
   .knob--volume {
-    width: 84px;
-    height: 84px;
+    width: 72px;
+    height: 72px;
+  }
+
+  .volume-fader__track {
+    width: 26px;
+    min-height: 72px;
+  }
+
+  .volume-step {
+    width: 44px;
+    height: 40px;
   }
 
   .decor-knob__body {
